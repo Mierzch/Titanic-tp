@@ -1,0 +1,126 @@
+---
+title: "Analyse du dataset Titanic"
+author: "Sylvain Mierzchala"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## 1. Chargement des données
+
+```{r}
+# install.packages("carData")  # à lancer une seule fois si besoin
+library(carData)
+data("TitanicSurvival")
+```
+
+## 2. Présentation des données
+
+Le jeu de données `TitanicSurvival` (package `carData`) décrit le sort de
+`r nrow(TitanicSurvival)` passagers du Titanic, naufragé en avril 1912.
+Il contient `r ncol(TitanicSurvival)` variables :
+
+- **survived** : le passager a-t-il survécu ? (facteur : `no` / `yes`)
+- **sex** : sexe du passager (facteur : `female` / `male`)
+- **age** : âge en années (numérique, avec des valeurs manquantes ; certains enfants ont un âge fractionnaire)
+- **passengerClass** : classe du billet (facteur : `1st`, `2nd`, `3rd`)
+
+```{r}
+head(TitanicSurvival)
+str(TitanicSurvival)
+```
+
+## 3. Statistiques descriptives
+
+```{r}
+summary(TitanicSurvival)
+```
+
+Valeurs manquantes par variable :
+
+```{r}
+colSums(is.na(TitanicSurvival))
+```
+
+Taux de survie global :
+
+```{r}
+round(prop.table(table(TitanicSurvival$survived)) * 100, 1)
+```
+
+## 4. Survie selon le sexe
+
+```{r}
+tab_sexe <- table(TitanicSurvival$sex, TitanicSurvival$survived)
+tab_sexe
+round(prop.table(tab_sexe, margin = 1) * 100, 1)  # % de survie par sexe
+
+barplot(t(tab_sexe), beside = TRUE,
+        col = c("tomato", "seagreen"),
+        legend.text = c("Décédé", "Survivant"),
+        main = "Survie selon le sexe",
+        xlab = "Sexe", ylab = "Nombre de passagers")
+```
+
+## 5. Survie selon la classe
+
+```{r}
+tab_classe <- table(TitanicSurvival$passengerClass, TitanicSurvival$survived)
+tab_classe
+round(prop.table(tab_classe, margin = 1) * 100, 1)  # % de survie par classe
+
+barplot(t(tab_classe), beside = TRUE,
+        col = c("tomato", "seagreen"),
+        legend.text = c("Décédé", "Survivant"),
+        main = "Survie selon la classe",
+        xlab = "Classe", ylab = "Nombre de passagers")
+```
+
+## 6. Âge selon la survie
+
+```{r}
+boxplot(age ~ survived, data = TitanicSurvival,
+        col = c("tomato", "seagreen"),
+        names = c("Décédé", "Survivant"),
+        main = "Âge selon la survie",
+        xlab = "Survie", ylab = "Âge (années)")
+
+# Âge moyen et médian par groupe (sans les NA)
+aggregate(age ~ survived, data = TitanicSurvival,
+          FUN = function(x) c(moyenne = mean(x), mediane = median(x)))
+```
+
+## 7. Interprétation
+
+- **Survie globale** : environ 38 % des passagers ont survécu, la majorité a donc péri.
+- **Sexe** : l'écart est très marqué. Environ 73 % des femmes ont survécu contre
+  seulement 19 % des hommes, ce qui reflète la règle « les femmes et les enfants d'abord »
+  appliquée lors de l'évacuation.
+- **Classe** : la survie diminue avec la classe : environ 62 % en 1re classe,
+  43 % en 2e et 26 % en 3e. Les passagers de 1re classe étaient logés plus près
+  des ponts et des canots, et ont été évacués en priorité.
+- **Âge** : les distributions d'âge des survivants et des décédés sont assez proches ;
+  les survivants sont légèrement plus jeunes en moyenne, en partie grâce à la
+  priorité donnée aux enfants. L'âge semble donc moins déterminant que le sexe
+  ou la classe. Attention : l'âge est manquant pour environ 20 % des passagers,
+  ce qui limite cette conclusion.
+
+**Conclusion** : le sexe et la classe sont les deux facteurs les plus liés à la survie.
+Être une femme voyageant en 1re classe maximisait les chances de survie, tandis
+qu'un homme de 3e classe avait les chances les plus faibles.
+
+## 8. Utilisation du package test2026
+
+La fonction `taux_survie()` de mon package `test2026` calcule directement
+le taux de survie (en %) selon une variable.
+
+```{r}
+library(test2026)
+taux_survie(TitanicSurvival, "sex")
+taux_survie(TitanicSurvival, "passengerClass")
+```
+
+On retrouve les mêmes taux que dans les parties 4 et 5.
